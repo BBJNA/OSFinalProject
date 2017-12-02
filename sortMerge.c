@@ -6,13 +6,34 @@
 #include <errno.h>
 #include <sys/sysinfo.h>
 
-//Parent Process
+#define KEYSIZE 8
+#define DATASIZE 56
+
+//RECSIZE = KEYSIZE+DATASIZE
+#define RECSIZE 64
+
+struct Record
+{
+	char key[KEYSIZE];
+	char data[DATASIZE];
+};
+
 int main(int argc, char *argv[]){
 
+	int FileSize, nRecs, nRecsPerThread;
+	int nThreads = argv[1];
 	char c;
 	FILE * dataFile;
 
-	dataFile = fopen(argv[1], "w+");
+	if (argc != 3)
+	{
+		printf("SYNTAX ERROR: sortMege <Number of Threads> <Filename>\n");
+		exit(0);
+	}
+	
+	printf("Number of cores for this machine: %d\n", get_nprocs());
+	
+	dataFile = fopen(argv[2], "r+");
 	if (dataFile == NULL)
 	{
 		
@@ -21,40 +42,13 @@ int main(int argc, char *argv[]){
 
 	}
 
-	printf("Number of cores for this machine: %d\n", get_nprocs());
+	fseek(dataFile, 0L, SEEK_END);
+	FileSize = ftell(dataFile);
+	rewind(dataFile);
 
-	c = fgetc(dataFile);
-	while(c != EOF){
+	nRecs = FileSize/RECSIZE;
 
-		printf("| %c", c);
-		c = fgetc(dataFile);
-
-	}
-
-	/*
-
-	pthread_t tid;
-	pthread_attr_t attr;
-
-	pthread_attr_init(&attr);
-	
-	pthread_create(&tid,&attr,PointGen,(void *)argv);
-
-	pthread_join(tid,NULL);
-
-
-	pthread_exit(NULL);
-	*/
 
 	fclose(dataFile);
 	return 0;
 }
-
-/*void *PointGen(void *argv){
-
-
-
-
-	pthread_exit(NULL);
-}
-*/
