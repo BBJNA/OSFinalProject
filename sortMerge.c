@@ -1,3 +1,6 @@
+//gcc -o sortMerge sortMerge.c -lpthread
+//./sortMerge 8 data_128
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +34,7 @@ void *SortData(void *thrdArg);
 
 int main(int argc, char *argv[]){
 	clock_t start = clock();
-	int FileSize, nRecs, nRecsPerThread;
+	int FileSize, nRecs, nRecsPerThread, count, tThreadCount=0, level=0;
 	char c;
 	FILE * dataFile;
 
@@ -83,38 +86,57 @@ int main(int argc, char *argv[]){
 
 	printf("Records per Thread: %d\n", nRecsPerThread);
 
-	thrdArg SortThreads[nThreads];
 
-	for (int i = 0; i < nThreads; ++i)
+	count = nThreads;
+	while(count != 0){
+
+		tThreadCount += count;
+		count = count/2;
+
+	}
+
+	printf("%d\n", level);
+
+	pthread_t threads[tThreadCount];
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	thrdArg SortThreads[tThreadCount];
+
+/////////////////////////////////////////////////////////////////////////////////////////
+	//MODIFY nRecsPerThread?????????????
+/////////////////////////////////////////////////////////////////////////////////////////
+	
+	for (int i = 0; i < tThreadCount; i++)
 	{
 		
-		SortThreads[i].lowRec = (Record *)(RecStartPtr+i*(nRecsPerThread+1));
+		if ( tThreadCount == nThreads)
+		{
+			/* code */
+		}
+
+		SortThreads[i].lowRec = (Record *)(RecStartPtr+i*(nRecsPerThread));
 		SortThreads[i].hiRec = (Record *)(RecStartPtr+(i+1)*nRecsPerThread);
 	
 	}
-
-	pthread_t p_tids[nThreads];
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-
-
-	for (int i = 0; i < nThreads; ++i)
+		
+	for (int i = 0; i < tThreadCount; i++)
 	{
 
-		pthread_create((p_tids+i), &attr, SortData, (void *)SortThreads[i]);
-		pthread_join(p_tids+i, NULL);
+		pthread_create(&threads[i], &attr, SortData, &SortThreads[i]);
+		pthread_join(threads[i], NULL);
 
 	}
 
-	SortData(SortThreads);
-
-	printRecords(RecStartPtr, nRecs);
+	//printRecords(RecStartPtr, nRecs);
 
 	fclose(dataFile);
 	free(RecStartPtr);
 	clock_t stop = clock();
 	double TimeTaken = (double)(stop-start)/CLOCKS_PER_SEC;
 	printf("\nThe sort took %f seconds\n", TimeTaken);
+
+	pthread_exit(NULL);
+
 	return 0;
 }
 
@@ -148,7 +170,6 @@ void *SortData(void *storeArg){
 
 	thrdArg *temp = (thrdArg *)storeArg;
 	int nRecords = ((int)((*temp).hiRec)-(int)((*temp).lowRec))/sizeof(Record);
-	printf("*SortData: %d\n", nRecords);
 	qsort((*temp).lowRec, nRecords, RECSIZE, cmpfunc);
 
 }
