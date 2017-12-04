@@ -26,7 +26,7 @@ typedef struct
 }thrdArg;
 
 int cmpfunc(const void *a, const void *b);
-void printRecord(Record *recptr, int nRecs);
+void printRecords(Record *recptr, int nRecs);
 void *SortData(void *thrdArg);
 
 int main(int argc, char *argv[]){
@@ -81,20 +81,34 @@ int main(int argc, char *argv[]){
 
 	nRecsPerThread = nRecs/nThreads;
 
-	printf("%d\n", nRecsPerThread);
+	printf("Records per Thread: %d\n", nRecsPerThread);
 
-	thrdArg *SortThreads[nThreads];
-	pthread_t *p_tids[nThreads];
+	thrdArg SortThreads[nThreads];
+
+	for (int i = 0; i < nThreads; ++i)
+	{
+		
+		SortThreads[i].lowRec = (Record *)(RecStartPtr+i*(nRecsPerThread+1));
+		SortThreads[i].hiRec = (Record *)(RecStartPtr+(i+1)*nRecsPerThread);
+	
+	}
+
+	pthread_t p_tids[nThreads];
 	pthread_attr_t attr;
-
 	pthread_attr_init(&attr);
 
-	(*SortThreads[0]).lowRec = (Record *)RecStartPtr;
-	(*SortThreads[0]).hiRec = (Record *)RecStartPtr+1;
 
-	SortData(SortThreads[0]);
+	for (int i = 0; i < nThreads; ++i)
+	{
 
-	//printRecord(RecStartPtr, nRecs);
+		pthread_create((p_tids+i), &attr, SortData, (void *)SortThreads[i]);
+		pthread_join(p_tids+i, NULL);
+
+	}
+
+	SortData(SortThreads);
+
+	printRecords(RecStartPtr, nRecs);
 
 	fclose(dataFile);
 	free(RecStartPtr);
@@ -120,7 +134,7 @@ int cmpfunc(const void *a, const void *b){
 
 }
 
-void printRecord(Record *recptr, int nRecs){
+void printRecords(Record *recptr, int nRecs){
 
 	for (int i = 0; i < nRecs; ++i)
 	{
@@ -134,8 +148,7 @@ void *SortData(void *storeArg){
 
 	thrdArg *temp = (thrdArg *)storeArg;
 	int nRecords = ((int)((*temp).hiRec)-(int)((*temp).lowRec))/sizeof(Record);
-	printf("%d\n", nRecords);
-
-	//qsort(, nRecords, RECSIZE, cmpfunc);
+	printf("*SortData: %d\n", nRecords);
+	qsort((*temp).lowRec, nRecords, RECSIZE, cmpfunc);
 
 }
