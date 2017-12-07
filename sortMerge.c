@@ -42,7 +42,7 @@ void *SortData(void *thrdArg);
 int main(int argc, char *argv[]){
 	clock_t start = clock();
 	int FileSize, nRecs, nRecsPerThread, count, tThreadCount=0, level=0, offset;
-	char c;
+	char ch;
 	FILE * dataFile, * sortFile;
 
 	if (argc != 3)
@@ -80,13 +80,15 @@ int main(int argc, char *argv[]){
 
 	nRecs = FileSize/RECSIZE;
 
-	Record *RecStartPtr = (Record *)malloc(nRecs*sizeof(Record));
+	Record *RecStartPtr = (Record *)malloc(nRecs*sizeof(Record)*2);
 	char *RecArrPtr = RecStartPtr;
 
 
 	for (int i = 0; i < nRecs*sizeof(Record); i++)
 	{	
-		*(RecArrPtr++) = fgetc(dataFile);
+		ch = fgetc(dataFile);
+		//printf("%c", ch);
+		*(RecArrPtr++) = ch;
 	}
 	
 	///////////////////////////////////////////////////
@@ -121,6 +123,7 @@ int main(int argc, char *argv[]){
 		{
 			SortThreads[i+(j*nThreads)].lowRec = (Record *)(RecStartPtr+i*offset);
 			SortThreads[i+(j*nThreads)].hiRec = (Record *)(RecStartPtr+(i+1)*offset);
+
 
 		}
 
