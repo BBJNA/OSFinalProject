@@ -1,5 +1,11 @@
-//gcc -o sortMerge sortMerge.c -lpthread
-//./sortMerge 8 data_128
+///////////////////////////////////////////////////////
+// Program: sortMerge <number of threads> <filename> //
+// Made by: Jordan Williams							 //
+///////////////////////////////////////////////////////
+// This program takes in data from a file and sorts  //
+// the data and then 
+
+//gcc -o sortMerge sortMerge.c -pthread -lm
 
 #include <pthread.h>
 #include <stdio.h>
@@ -8,6 +14,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <sys/sysinfo.h>
+#include <math.h>
 
 #define KEYSIZE 8
 #define DATASIZE 56
@@ -34,9 +41,9 @@ void *SortData(void *thrdArg);
 
 int main(int argc, char *argv[]){
 	clock_t start = clock();
-	int FileSize, nRecs, nRecsPerThread, count, tThreadCount=0, level=0;
+	int FileSize, nRecs, nRecsPerThread, count, tThreadCount=0, level=0, offset;
 	char c;
-	FILE * dataFile;
+	FILE * dataFile, * sortFile;
 
 	if (argc != 3)
 	{
@@ -49,8 +56,16 @@ int main(int argc, char *argv[]){
 	///////////////////////////////////////////////////
 	
 	printf("Number of cores for this machine: %d\n", get_nprocs());
-	
 	dataFile = fopen(argv[2], "r+");
+	if (dataFile == NULL)
+	{
+		
+		printf("Cannot Open file\n");
+		exit(0);
+
+	}
+
+	sortFile = fopen("Sorted", "w+");
 	if (dataFile == NULL)
 	{
 		
@@ -74,8 +89,6 @@ int main(int argc, char *argv[]){
 		*(RecArrPtr++) = fgetc(dataFile);
 	}
 	
-	//printRecord(RecStartPtr, nRecs);
-
 	///////////////////////////////////////////////////
 	//        Sorting with Multiple Threads          //
 	///////////////////////////////////////////////////
@@ -84,52 +97,55 @@ int main(int argc, char *argv[]){
 
 	nRecsPerThread = nRecs/nThreads;
 
-	printf("Records per Thread: %d\n", nRecsPerThread);
-
-
 	count = nThreads;
-	while(count != 0){
+	while(count > 0){
 
 		tThreadCount += count;
 		count = count/2;
+		level++;
 
 	}
 
-	printf("%d\n", level);
+	level--;
 
 	pthread_t threads[tThreadCount];
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	thrdArg SortThreads[tThreadCount];
 
-/////////////////////////////////////////////////////////////////////////////////////////
-	//MODIFY nRecsPerThread?????????????
-/////////////////////////////////////////////////////////////////////////////////////////
-	
-	for (int i = 0; i < tThreadCount; i++)
+	for(int j = 0; j < level+1; j++)
 	{
-		
-		if ( tThreadCount == nThreads)
+		offset = nRecs/pow(2,(level-j));
+
+		for (int i = 0; i < nThreads/((int)pow(2,j)); i++)
 		{
-			/* code */
+			SortThreads[i+(j*nThreads)].lowRec = (Record *)(RecStartPtr+i*offset);
+			SortThreads[i+(j*nThreads)].hiRec = (Record *)(RecStartPtr+(i+1)*offset);
+
 		}
 
-		SortThreads[i].lowRec = (Record *)(RecStartPtr+i*(nRecsPerThread));
-		SortThreads[i].hiRec = (Record *)(RecStartPtr+(i+1)*nRecsPerThread);
-	
 	}
-		
-	for (int i = 0; i < tThreadCount; i++)
-	{
 
+	for (int i = 0; i < nThreads; i++)
+	{
 		pthread_create(&threads[i], &attr, SortData, &SortThreads[i]);
 		pthread_join(threads[i], NULL);
-
+	
 	}
+	
+	qsort(RecStartPtr, nRecs, RECSIZE, cmpfunc);
 
 	//printRecords(RecStartPtr, nRecs);
 
+	char *RecFilePtr = RecStartPtr;
+
+	for (int i = 0; i < nRecs*sizeof(Record); i++)
+	{	
+		fputc(((int)*(RecFilePtr++)), sortFile);
+	}
+
 	fclose(dataFile);
+	fclose(sortFile);
 	free(RecStartPtr);
 	clock_t stop = clock();
 	double TimeTaken = (double)(stop-start)/CLOCKS_PER_SEC;
@@ -158,9 +174,9 @@ int cmpfunc(const void *a, const void *b){
 
 void printRecords(Record *recptr, int nRecs){
 
-	for (int i = 0; i < nRecs; ++i)
+	for (int i = 0; i < nRecs; i++)
 	{
-		for (int j = 0; j < RECSIZE; ++j)
+		for (int j = 0; j < RECSIZE; j++)
 		{
 			printf("%c", (*(recptr+i)).key[j]);
 		}
