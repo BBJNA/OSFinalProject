@@ -3,9 +3,9 @@
 // Made by: Jordan Williams							 //
 ///////////////////////////////////////////////////////
 // This program takes in data from a file and sorts  //
-// the data and then 
-
-//gcc -o sortMerge sortMerge.c -pthread -lm
+// the data and then saves it to Sorted file in the  //
+// same directroy the program is run.                //
+///////////////////////////////////////////////////////
 
 #include <pthread.h>
 #include <stdio.h>
@@ -28,7 +28,6 @@ typedef struct
 
 typedef struct
 {
-		
 		int thdNum;
 		Record * lowRec;
 		Record * hiRec;
@@ -40,7 +39,9 @@ void printRecords(Record *recptr, int nRecs);
 void *SortData(void *thrdArg);
 
 int main(int argc, char *argv[]){
+
 	clock_t start = clock();
+
 	int FileSize, nRecs, nRecsPerThread, count, tThreadCount=0, level=0, offset;
 	char ch;
 	FILE * dataFile, * sortFile;
@@ -56,6 +57,7 @@ int main(int argc, char *argv[]){
 	///////////////////////////////////////////////////
 	
 	printf("Number of cores for this machine: %d\n", get_nprocs());
+	
 	dataFile = fopen(argv[2], "r+");
 	if (dataFile == NULL)
 	{
@@ -87,7 +89,6 @@ int main(int argc, char *argv[]){
 	for (int i = 0; i < nRecs*sizeof(Record); i++)
 	{	
 		ch = fgetc(dataFile);
-		//printf("%c", ch);
 		*(RecArrPtr++) = ch;
 	}
 	
@@ -136,9 +137,13 @@ int main(int argc, char *argv[]){
 	
 	}
 	
+	// Final Sort for all the data since the loop above only does up to two threads
+	// merging the data. 
 	qsort(RecStartPtr, nRecs, RECSIZE, cmpfunc);
 
-	//printRecords(RecStartPtr, nRecs);
+	///////////////////////////////////////////////////
+	//        Saving the data in Sorted.txt          //
+	///////////////////////////////////////////////////
 
 	char *RecFilePtr = RecStartPtr;
 
@@ -146,6 +151,10 @@ int main(int argc, char *argv[]){
 	{	
 		fputc(((int)*(RecFilePtr++)), sortFile);
 	}
+
+	//////////////////////////////////////////////////////////////
+	//		Releasing files, data and calculating time taken 	//
+	//////////////////////////////////////////////////////////////
 
 	fclose(dataFile);
 	fclose(sortFile);
@@ -185,6 +194,7 @@ void printRecords(Record *recptr, int nRecs){
 		}
 	}
 }
+
 void *SortData(void *storeArg){
 
 	thrdArg *temp = (thrdArg *)storeArg;
